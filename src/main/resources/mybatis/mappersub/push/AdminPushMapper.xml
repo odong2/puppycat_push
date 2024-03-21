@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.architecture.admin.models.daosub.push.AdminPushDaoSub">
+    <!-- ==============================================================
+        SETTING
+    =============================================================== -->
+    <!-- database name -->
+    <sql id="databaseSns">${databaseRefIdSns}</sql>
+    <sql id="databaseMember">${databaseRefIdMember}</sql>
+    <sql id="databasePush">${databaseRefIdPush}</sql>
+    <sql id="databaseCommon">${databaseRefIdCommon}</sql>
+
+    <!-- 상태값 조회하기 -->
+    <select id="getState" resultType="int">
+        SELECT
+            `state`
+        FROM
+            <include refid="databasePush"/>`push_worker`
+        WHERE
+            `idx` = #{idx}
+    </select>
+
+    <!-- 공지 state 가져오기 -->
+    <select id="getNoticeStateByIdx" parameterType="Long" resultType="integer">
+        SELECT
+            `pubono`.`state`
+        FROM
+            <include refid="databaseCommon" />`puppycat_board_notice` AS `pubono`
+        WHERE
+            `pubono`.`idx` = #{noticeIdx}
+    </select>
+
+    <!-- 컨텐츠 state 가져오기 -->
+    <select id="getContentsStateByIdx" parameterType="Long" resultType="integer">
+        SELECT
+            `snco`.`state`
+        FROM
+            <include refid="databaseSns" />`sns_contents` AS `snco`
+        WHERE
+            `snco`.`idx` = #{contentsIdx}
+    </select>
+
+    <!-- 어드민 푸시 정보 가져오기 -->
+    <select id="getAdminPushInfo" parameterType="int" resultType="AdminPushDto">
+        SELECT
+            `puad`.`idx`
+            ,`puad`.`type_idx`
+            ,`snputy`.`title` AS `type_title`
+            ,`puad`.`body`
+            ,`puad`.`title`
+            ,`puad`.`img`
+            ,`puad`.`contents_type`
+            ,`puad`.`contents_idx`
+        FROM
+            <include refid="databasePush"/>`push_admin` as `puad`
+        INNER JOIN <include refid="databaseSns"/>`sns_push_type` AS `snputy`
+            ON `puad`.`type_idx` = `snputy`.`idx`
+        WHERE
+            `puad`.`state` = 1
+        ORDER BY  `puad`.`idx` ASC
+        LIMIT 1
+    </select>
+
+    <!--  회원의 전체 토큰  -->
+    <select id="getAllMemberToken" parameterType="AdminPushDto" resultType="AdminPushDto">
+        SELECT
+            `pumeap`.`idx`
+            ,`pumeap`.`member_uuid`
+            ,`pumeap`.`fcm_token`
+        FROM
+            <include refid="databaseMember"/>`puppycat_member_app` as `pumeap`
+        WHERE
+                `pumeap`.`state` = 1
+            AND `pumeap`.`idx` > #{limit}
+            AND `pumeap`.`idx` % 3 = #{num}
+            AND  `pumeap`.`fcm_token` != ""
+        ORDER BY  `pumeap`.`idx` ASC
+        LIMIT 500
+    </select>
+
+    <!-- 야간 알림 설정한 전체 회원 토큰  -->
+    <select id="getAllMemberNightToken" parameterType="AdminPushDto" resultType="AdminPushDto">
+        SELECT
+            `pumeap`.`idx`
+            ,`pumeap`.`member_uuid`
+            ,`pumeap`.`fcm_token`
+        FROM
+            <include refid="databaseMember"/>`puppycat_member_app` as `pumeap`
+        LEFT JOIN <include refid="databaseMember"/>`puppycat_member_notification_sub_setting` AS `pumenosuse`
+            ON `pumenosuse`.`member_uuid` = `pumeap`.`member_uuid`
+            AND `pumenosuse`.`noti_type` = 3
+            AND `pumenosuse`.`sub_type` = 1
+            AND `pumenosuse`.`state` = 1
+        WHERE
+                `pumeap`.`state` = 1
+            AND `pumeap`.`idx` > #{limit}
+            AND `pumeap`.`idx` % 3 = #{num}
+            AND  `pumeap`.`fcm_token` != ""
+        ORDER BY  `pumeap`.`idx` ASC
+        LIMIT 500
+    </select>
+
+    <!-- 알림 설정한 회원의  토큰  -->
+    <select id="getAlarmMemberToken" parameterType="AdminPushDto" resultType="AdminPushDto">
+        SELECT
+            `pumeap`.`idx`
+            ,`pumeap`.`member_uuid`
+            ,`pumeap`.`fcm_token`
+        FROM
+            <include refid="databaseMember"/>`puppycat_member_app` as `pumeap`
+        LEFT JOIN <include refid="databaseMember"/>`puppycat_member_notification_sub_setting` AS `pumenosuse`
+            ON `pumenosuse`.`member_uuid` = `pumeap`.`member_uuid`
+            AND `pumenosuse`.`noti_type` = 2
+            AND `pumenosuse`.`sub_type` = 1
+        WHERE
+                `pumeap`.`state` = 1
+            AND `pumenosuse`.`state` = 1
+            AND `pumeap`.`idx` > #{limit}
+            AND `pumeap`.`idx` % 3 = #{num}
+        ORDER BY  `pumeap`.`idx` ASC
+        LIMIT 500
+    </select>
+
+    <!-- 알림/야간알림 설정 한 회원의  토큰  -->
+    <select id="getAlarmMemberNightToken" parameterType="AdminPushDto" resultType="AdminPushDto">
+        SELECT
+            `pumeap`.`idx`
+            ,`pumeap`.`member_uuid`
+            ,`pumeap`.`fcm_token`
+        FROM
+            <include refid="databaseMember"/>`puppycat_member_app` AS `pumeap`
+        LEFT JOIN <include refid="databaseSns"/>`sns_member_notification_sub_setting` as `pumenosuse`
+            ON `pumenosuse`.`member_uuid` = `pumeap`.`member_uuid`
+            AND `pumenosuse`.`noti_type` = 3
+            AND `pumenosuse`.`sub_type` = 1
+        LEFT JOIN <include refid="databaseSns"/>`sns_member_notification_sub_setting` as `pumenosuse1`
+            ON `pumenosuse1`.`member_uuid` = `pumeap`.`member_uuid`
+            AND `pumenosuse1`.`noti_type` = 2
+            AND `pumenosuse1`.`sub_type` = 1
+        WHERE
+                `pumeap`.`state` = 1
+            AND `pumenosuse`.`state` = 1
+            AND `pumenosuse1`.`state` = 1
+            AND `pumeap`.`idx` > #{limit}
+            AND `pumeap`.`idx` % 3 = #{num}
+        ORDER BY `pumeap`.`idx` ASC
+        LIMIT 500
+    </select>
+
+    <select id="getWorkerLimit" parameterType="int" resultType="long">
+        SELECT
+            `puwoli`.`limit`
+        FROM
+            <include refid="databasePush"/>`push_worker_limit` AS `puwoli`
+        WHERE
+            `puwoli`.`idx` = #{num}
+    </select>
+
+    <!-- 정상적인 워커 카운트 가져오기 -->
+    <select id="getWorkerCheck" resultType="int">
+        SELECT
+            COUNT(`puwo`.`idx`) AS `cnt`
+        FROM
+            <include refid="databasePush" />`push_worker` AS `puwo`
+        WHERE
+            `puwo`.`state` = 1
+    </select>
+
+    <!-- ==============================================================
+        UPDATE
+    =============================================================== -->
+    <!-- ==============================================================
+        DELETE
+    =============================================================== -->
+</mapper>

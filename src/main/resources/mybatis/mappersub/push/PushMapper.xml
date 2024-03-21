@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.architecture.admin.models.daosub.push.PushDaoSub">
+    <!-- ==============================================================
+        SETTING
+    =============================================================== -->
+    <!-- database name -->
+    <sql id="databaseSns">${databaseRefIdSns}</sql>
+    <sql id="databaseMember">${databaseRefIdMember}</sql>
+    <sql id="databasePush">${databaseRefIdPush}</sql>
+    <sql id="databaseCommon">${databaseRefIdCommon}</sql>
+
+    <!-- ==============================================================
+          SELECET
+      =============================================================== -->
+    <select id="getPushTypeTitle" parameterType="int" resultType="String">
+        SELECT
+            `snputy`.`title`
+        FROM
+            <include refid="databaseSns"/>`sns_push_type` as `snputy`
+        WHERE
+            `snputy`.`idx` = #{idx}
+        LIMIT 1
+    </select>
+
+    <!-- 1:1 푸시 받을 회원 토큰 리스트 가져오기 -->
+    <select id="getPushTokenList" parameterType="PushDto" resultType="string">
+        SELECT
+            `pumeap`.`fcm_token`
+        FROM
+            <include refid="databaseMember"/>`puppycat_member_app` AS `pumeap`
+        LEFT JOIN <include refid="databaseMember"/>`puppycat_member_notification_sub_setting` AS `pumenosuse`
+            ON `pumenosuse`.`member_uuid` = `pumeap`.`member_uuid`
+        INNER JOIN  <include refid="databaseSns"/>`sns_push_type` AS `snputy`
+            ON  `snputy`.`noti_type` = `pumenosuse`.`noti_type`
+            AND `snputy`.`sub_type` = `pumenosuse`.`sub_type`
+        WHERE
+                `pumeap`.`member_uuid` = #{receiverUuid}
+            AND `snputy`.`idx` = #{typeIdx}
+            AND	`pumeap`.`state` = 1
+            AND `pumenosuse`.`state` = 1
+            AND `pumeap`.`fcm_token` != "";
+    </select>
+
+    <!-- 1:1 푸시 받을 회원 토큰 리스트 가져오기 -->
+    <select id="getNightPushTokenList" parameterType="PushDto" resultType="string">
+        SELECT
+            `pumeap`.`fcm_token`
+        FROM
+            <include refid="databaseMember"/>`puppycat_member_app` AS `pumeap`
+        LEFT JOIN <include refid="databaseMember"/>`puppycat_member_notification_sub_setting` AS `pumenosuse`
+            ON `pumenosuse`.`member_uuid` = `pumeap`.`member_uuid`
+        LEFT JOIN <include refid="databaseMember"/>`puppycat_member_notification_sub_setting` AS `pumenosuse1`
+            ON `pumenosuse1`.`member_uuid` = `pumeap`.`member_uuid`
+            AND `pumenosuse1`.`noti_type` = 3
+            AND `pumenosuse1`.`sub_type` = 1
+        INNER JOIN <include refid="databaseSns"/>`sns_push_type` AS `snputy`
+            ON  `snputy`.`noti_type` = `pumenosuse`.`noti_type`
+            AND `snputy`.`sub_type` = `pumenosuse`.`sub_type`
+        WHERE
+                `pumeap`.`member_uuid` = #{receiverIdx}
+            AND `snputy`.`idx` = #{typeIdx}
+            AND	`pumeap`.`state` = 1
+            AND `pumenosuse1`.`state` = 1
+            AND `pumenosuse`.`state` = 1
+            AND  `pumeap`.`fcm_token` != "";
+    </select>
+    <!-- ==============================================================
+        UPDATE
+    =============================================================== -->
+    <!-- ==============================================================
+        DELETE
+    =============================================================== -->
+</mapper>

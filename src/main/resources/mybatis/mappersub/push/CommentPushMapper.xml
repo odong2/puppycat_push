@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.architecture.admin.models.daosub.push.CommentPushDaoSub">
+    <!-- ==============================================================
+        SETTING
+    =============================================================== -->
+    <!-- database name -->
+    <sql id="databaseSns">${databaseRefIdSns}</sql>
+    <sql id="databaseMember">${databaseRefIdMember}</sql>
+    <sql id="databasePush">${databaseRefIdPush}</sql>
+    <sql id="databaseCommon">${databaseRefIdCommon}</sql>
+
+
+    <!-- ==============================================================
+          SELECET
+      =============================================================== -->
+    <!--  멘션 된 회원 IDX  -->
+    <select id="getMentionMember" parameterType="long" resultType="String">
+        SELECT
+            `snmeme`.`member_uuid`
+        FROM
+            <include refid="databaseSns"/>`sns_contents_comment_mention_mapping` as `sncocomema`
+        INNER JOIN <include refid="databaseSns"/>`sns_member_mention` AS `snmeme`
+            ON `sncocomema`.`mention_idx` = `snmeme`.`idx`
+        WHERE
+                `sncocomema`.`comment_idx` = #{commentIdx}
+            AND `sncocomema`.`state` = 1
+    </select>
+
+    <!-- 댓글 수정전 멘션 된 회원 IDX-->
+    <select id="getPrevMentionMember" parameterType="CommentPushDto" resultType="String">
+        SELECT
+            DISTINCT `snmeme`.`member_uuid`
+        FROM
+            <include refid="databaseSns"/>`sns_contents_comment_mention_mapping` as `sncocomema`
+        INNER JOIN <include refid="databaseSns"/>`sns_member_mention` AS `snmeme`
+            ON `sncocomema`.`mention_idx` = `snmeme`.`idx`
+        WHERE
+                `sncocomema`.`comment_idx` = #{commentIdx}
+            AND `sncocomema`.`state`       = 1
+            AND `sncocomema`.`reg_date` <![CDATA[ < ]]> #{modiDate}
+    </select>
+
+    <!--  컨텐츠 작성자 IDX  -->
+    <select id="getContentsMember" parameterType="long" resultType="String">
+        SELECT
+            `snco`.`member_uuid`
+        FROM
+            <include refid="databaseSns"/>`sns_contents_comment` as `sncoco`
+        INNER JOIN <include refid="databaseSns"/>`sns_contents` AS `snco`
+            ON `sncoco`.`contents_idx` = `snco`.`idx`
+        WHERE
+            `sncoco`.`idx` = #{commentIdx}
+    </select>
+
+    <!--  부모 댓글 작성자 IDX  -->
+    <select id="getParentCommentMember" parameterType="long" resultType="String">
+        SELECT
+            `sncoco`.`member_uuid`
+        FROM
+            <include refid="databaseSns"/>`sns_contents_comment` as `sncoco`
+        WHERE
+            `sncoco`.`idx` = #{commentIdx}
+    </select>
+
+    <!--  댓글 작성자 info  -->
+    <select id="getCommentWriterInfo" parameterType="long" resultType="CommentPushDto">
+        SELECT
+            `sncoco`.`idx` AS `commentIdx`
+            ,`sncoco`.`contents_idx`
+            ,`sncoco`.`member_uuid`
+            ,`pume`.`nick`
+            ,`sncoco`.`parent_idx`
+            ,`sncoco`.`modi_date`
+        FROM
+            <include refid="databaseSns"/>`sns_contents_comment` AS `sncoco`
+        INNER JOIN <include refid="databaseMember"/>`puppycat_member` AS `pume`
+            ON `sncoco`.`member_uuid` = `pume`.`uuid`
+        WHERE
+            `sncoco`.`idx` = #{commentIdx}
+    </select>
+
+
+    <!-- ==============================================================
+        UPDATE
+    =============================================================== -->
+    <!-- ==============================================================
+        DELETE
+    =============================================================== -->
+</mapper>
